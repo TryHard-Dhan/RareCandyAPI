@@ -1,0 +1,5 @@
+name: RareCandyAPI
+version: 1.0.0
+main: com.rarecandy.rarecandyapi.RareCandyPlugin
+api-version: '1.13'
+depend: [PlaceholderAPI]

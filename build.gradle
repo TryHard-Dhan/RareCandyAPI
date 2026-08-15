@@ -1,0 +1,71 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '1.0.21'
+}
+
+version = '1.0.0'
+group = 'com.rarecandy.rarecandyapi'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url = "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+
+    maven {
+        name = "ParchmentMC"
+        url = "https://maven.parchmentmc.org"
+    }
+
+    maven {
+        name = "Spigot"
+        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
+    }
+
+    maven {
+        name = "PlaceholderAPI"
+        url = "https://repo.extendedclip.com/releases/"
+    }
+}
+
+neoForge {
+    version = '21.1.65'
+
+    mods {
+        rarecandyapi {
+            sourceSet project.sourceSets.main
+        }
+    }
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+        }
+    }
+}
+
+dependencies {
+    compileOnly "org.spigotmc:spigot-api:1.21.1-R0.1-SNAPSHOT"
+    compileOnly "me.clip:placeholderapi:2.11.6"
+    compileOnly 'com.zaxxer:HikariCP:5.1.0'
+    compileOnly 'mysql:mysql-connector-java:8.0.33'
+    compileOnly "curse.maven:pixelmon-389487:8042508"
+    implementation(files("libs/Pixelmon Raid-NeoForge-1.21.1-3.2.1.jar"))
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
