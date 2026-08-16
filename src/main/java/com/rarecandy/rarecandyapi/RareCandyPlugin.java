@@ -8,6 +8,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
+
 public class RareCandyPlugin extends JavaPlugin {
 
     @Override
@@ -53,5 +55,9 @@ public class RareCandyPlugin extends JavaPlugin {
         if (text.contains("%raidboss_damage_taken%")) text = text.replace("%raidboss_damage_taken%", String.valueOf(stats.damageTaken));
 
         return text;
+    }
+
+    public static List<String> getTopPrestige(int limit) {
+        return DatabaseManager.getTopPrestige(limit);
     }
 }

@@ -11,11 +11,7 @@ public class PlayerDataManager {
     private static final Map<UUID, PlayerData> DATA_CACHE = new ConcurrentHashMap<>();
 
     public static PlayerData get(UUID uuid) {
-        return DATA_CACHE.computeIfAbsent(uuid, PlayerDataManager::load);
-    }
-
-    public static PlayerData load(UUID uuid) {
-        return DatabaseManager.loadPlayerAsync(uuid).join();
+        return DATA_CACHE.computeIfAbsent(uuid, k -> DatabaseManager.loadPlayerAsync(k).join());
     }
 
     public static void save(UUID uuid) {
@@ -30,13 +26,15 @@ public class PlayerDataManager {
     }
 
     public static void saveAndUnload(UUID uuid) {
-        save(uuid);
-        DATA_CACHE.remove(uuid);
+        PlayerData data = DATA_CACHE.remove(uuid);
+        if (data != null) {
+            DatabaseManager.savePlayerAsync(data);
+        }
     }
 
     public static void saveAll() {
         for (PlayerData data : DATA_CACHE.values()) {
-            save(data);
+            DatabaseManager.savePlayerAsync(data);
         }
     }
 }
