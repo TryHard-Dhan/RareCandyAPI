@@ -3,6 +3,7 @@ package com.rarecandy.rarecandyapi.registry;
 import com.pixelmonmod.pixelmon.api.pokemon.Pokemon;
 import com.pixelmonmod.pixelmon.api.storage.PlayerPartyStorage;
 import com.pixelmonmod.pixelmon.api.storage.StorageProxy;
+import com.rarecandy.rarecandyapi.bridge.GymBridge;
 import com.rarecandy.rarecandyapi.data.PlayerData;
 import com.rarecandy.rarecandyapi.data.PlayerDataManager;
 import com.PixelmonRaid.RaidSaveData;
@@ -13,7 +14,14 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class RareCandyExpansion extends PlaceholderExpansion {
+
+    private static final Map<String, String> ASYNC_CACHE = new ConcurrentHashMap<>();
 
     @Override
     public @NotNull String getIdentifier() { return "rarecandyapi"; }
@@ -30,19 +38,72 @@ public class RareCandyExpansion extends PlaceholderExpansion {
     @Override
     public boolean canRegister() { return true; }
 
+    /**
+     * Helper method to fetch async data safely.
+     * Returns "Loading..." instantly, and updates the cache in the background when the DB responds.
+     */
+    private String getOrFetchAsync(UUID uuid, String param, CompletableFuture<?> future) {
+        String cacheKey = uuid.toString() + "_" + param;
+        if (ASYNC_CACHE.containsKey(cacheKey)) {
+            return ASYNC_CACHE.get(cacheKey);
+        }
+
+        ASYNC_CACHE.put(cacheKey, "Loading...");
+        future.thenAccept(result -> {
+            ASYNC_CACHE.put(cacheKey, String.valueOf(result));
+        }).exceptionally(ex -> {
+            ASYNC_CACHE.put(cacheKey, "Error");
+            return null;
+        });
+
+        return "Loading...";
+    }
+
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String params) {
         if (player == null) return "";
 
         PlayerData data = PlayerDataManager.get(player.getUniqueId());
         ServerPlayer serverPlayer = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(player.getUniqueId());
+        String lowerParam = params.toLowerCase();
 
-        if (data == null) {
-            if (params.equalsIgnoreCase("party_lead_name")) return "None";
+        if (lowerParam.equals("gymsystem_gyms_beaten_total")) {
+            return getOrFetchAsync(player.getUniqueId(), lowerParam, GymBridge.getTotalWinsByCategory(player.getUniqueId(), "gyms"));
+        }
+
+        if (lowerParam.equals("gymsystem_e4_beaten_total")) {
+            return getOrFetchAsync(player.getUniqueId(), lowerParam, GymBridge.getTotalWinsByCategory(player.getUniqueId(), "e4"));
+        }
+
+        if (lowerParam.startsWith("gymsystem_has_defeated_")) {
+            String gymId = lowerParam.replace("gymsystem_has_defeated_", "");
+            return getOrFetchAsync(player.getUniqueId(), lowerParam, GymBridge.hasBeatenNode(player.getUniqueId(), gymId));
+        }
+
+        if (lowerParam.startsWith("gymsystem_bt_lifetime_wins_")) {
+            String gymId = lowerParam.replace("gymsystem_bt_lifetime_wins_", "");
+            return getOrFetchAsync(player.getUniqueId(), lowerParam, GymBridge.getLifetimeWins(player.getUniqueId(), gymId));
+        }
+
+        if (lowerParam.startsWith("gymsystem_champion_streak_")) {
+            String gymId = lowerParam.replace("gymsystem_champion_streak_", "");
+            com.gym.gymsystem.data.DatabaseManager.GymLeaderData leader = GymBridge.getChampionData(gymId);
+            if (leader != null && leader.playerUUID().equals(player.getUniqueId().toString())) {
+                return String.valueOf(leader.defenseStreak());
+            }
             return "0";
         }
 
-        switch (params.toLowerCase()) {
+        if (lowerParam.equals("gymsystem_bt_active_floor")) {
+            return GymBridge.getActiveBTFloor(player.getUniqueId());
+        }
+
+        if (data == null) {
+            if (lowerParam.equalsIgnoreCase("party_lead_name")) return "None";
+            return "0";
+        }
+
+        switch (lowerParam) {
             case "prestige_level": return String.valueOf(data.getPrestigeLevel());
             case "prestige_tokens": return String.valueOf(data.getPrestigeTokens());
             case "lifetime_catches": return String.valueOf(data.getLifetimeCatches());

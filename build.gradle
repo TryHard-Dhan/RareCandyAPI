@@ -1,31 +1,50 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '1.0.21'
+    id 'net.neoforged.moddev' version '2.0.140'
 }
 
-version = '1.0.0'
-group = 'com.rarecandy.rarecandyapi'
+group = "com.rarecandy.rarecandyapi"
+version = "1.1.0"
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = "21.1.65"
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', "rarecandyapi"
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', "rarecandyapi"
+        }
+    }
+
+    mods {
+        rarecandyapi {
+            sourceSet(sourceSets.main)
+        }
     }
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 
     maven {
+        url = "https://maven.parchmentmc.org"
+    }
+
+    maven {
+        name = "CurseMaven"
         url = "https://cursemaven.com"
         content {
             includeGroup "curse.maven"
         }
-    }
-
-    maven {
-        name = "ParchmentMC"
-        url = "https://maven.parchmentmc.org"
     }
 
     maven {
@@ -39,36 +58,39 @@ repositories {
     }
 }
 
-neoForge {
-    version = '21.1.65'
-
-    mods {
-        rarecandyapi {
-            sourceSet project.sourceSets.main
-        }
-    }
-
-    runs {
-        client {
-            client()
-        }
-        server {
-            server()
-        }
-    }
-}
-
 dependencies {
     compileOnly "org.spigotmc:spigot-api:1.21.1-R0.1-SNAPSHOT"
     compileOnly "me.clip:placeholderapi:2.11.6"
     compileOnly 'com.zaxxer:HikariCP:5.1.0'
     compileOnly 'mysql:mysql-connector-java:8.0.33'
     compileOnly "curse.maven:pixelmon-389487:8042508"
-    implementation(files("libs/Pixelmon Raid-NeoForge-1.21.1-1.0.0.jar"))
+    compileOnly fileTree(dir: 'libs', include: ['*.jar'])
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+base {
+    archivesName = 'RareCandyAPI-NeoForge'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: "1.21.1", minecraft_version_range: "[1.21.1,1.22)",
+            neo_version      : "21.1.65", neo_version_range: "[21.1.65,)",
+            mod_id           : "rarecandyapi",
+            mod_name         : "RareCandy API",
+            mod_license      : "All Rights Reserved",
+            mod_version      : version,
+            mod_authors      : "Dhanraj",
+            mod_description  : "Core Arclight API for RareCandy custom mods."
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties + [project: project]
+    }
 }
 
 publishing {

@@ -11,7 +11,20 @@ public class PlayerDataManager {
     private static final Map<UUID, PlayerData> DATA_CACHE = new ConcurrentHashMap<>();
 
     public static PlayerData get(UUID uuid) {
-        return DATA_CACHE.computeIfAbsent(uuid, k -> DatabaseManager.loadPlayerAsync(k).join());
+        if (DATA_CACHE.containsKey(uuid)) {
+            return DATA_CACHE.get(uuid);
+        }
+
+        PlayerData temporaryData = new PlayerData(uuid);
+        DATA_CACHE.put(uuid, temporaryData);
+
+        DatabaseManager.loadPlayerAsync(uuid).thenAccept(loadedData -> {
+            if (loadedData != null) {
+                DATA_CACHE.put(uuid, loadedData);
+            }
+        });
+
+        return temporaryData;
     }
 
     public static void save(UUID uuid) {

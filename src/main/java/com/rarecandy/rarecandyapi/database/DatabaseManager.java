@@ -35,6 +35,7 @@ public class DatabaseManager {
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         config.addDataSourceProperty("useServerPrepStmts", "true");
         config.setMaximumPoolSize(10);
+        config.setInitializationFailTimeout(0);
 
         dataSource = new HikariDataSource(config);
         createTable();
